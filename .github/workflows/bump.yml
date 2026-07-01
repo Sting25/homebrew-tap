@@ -1,0 +1,59 @@
+name: bump-formula
+
+# Keeps the ai-coding-rules-scaffold formula pointed at the latest upstream
+# GitHub release. Runs on a schedule (best-effort) and on demand via
+# "Run workflow" (the reliable path — click it after cutting a release).
+# Uses THIS tap repo's own GITHUB_TOKEN, so there is no external secret.
+
+on:
+  schedule:
+    - cron: "23 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      - name: Sync formula to the latest upstream release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          repo="Sting25/ai-coding-rules-scaffold"
+          formula="Formula/ai-coding-rules-scaffold.rb"
+
+          latest="$(gh release view --repo "$repo" --json tagName --jq .tagName)"
+          case "$latest" in
+            v[0-9]*) : ;;
+            *) echo "::error::unexpected latest tag '$latest'"; exit 1 ;;
+          esac
+
+          url="https://github.com/$repo/archive/refs/tags/$latest.tar.gz"
+          sha="$(curl -fsSL "$url" | sha256sum | awk '{print $1}')"
+          [ "${#sha}" -eq 64 ] || { echo "::error::unexpected sha256 '$sha'"; exit 1; }
+
+          # Rewrite url + sha256, then FAIL SAFE: validate the formula's Ruby syntax
+          # and confirm both new values landed BEFORE committing. If anything is off
+          # we exit non-zero without pushing, leaving the formula untouched.
+          sed -i \
+            -e "s|url \".*archive/refs/tags/.*\.tar\.gz\"|url \"$url\"|" \
+            -e "s|sha256 \"[0-9a-f]*\"|sha256 \"$sha\"|" \
+            "$formula"
+          ruby -c "$formula"
+          grep -qF "$latest.tar.gz" "$formula"
+          grep -qF "$sha" "$formula"
+
+          if git diff --quiet -- "$formula"; then
+            echo "Formula already at $latest — nothing to do."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$formula"
+          git commit -m "ai-coding-rules-scaffold $latest"
+          git push
