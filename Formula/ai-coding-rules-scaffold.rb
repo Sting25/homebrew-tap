@@ -9,8 +9,8 @@
 class AiCodingRulesScaffold < Formula
   desc "Pre-commit and CI guardrails: size, pattern, secret, and hygiene checks"
   homepage "https://github.com/Sting25/ai-coding-rules-scaffold"
-  url "https://github.com/Sting25/ai-coding-rules-scaffold/archive/refs/tags/v0.13.0.tar.gz"
-  sha256 "6e11669cd66774d40a4fe428d2cc95f7bfd34c3d05c5643bd894f17f4a07cf76"
+  url "https://github.com/Sting25/ai-coding-rules-scaffold/archive/refs/tags/v0.14.0.tar.gz"
+  sha256 "bc15a220477c7d8bba6170661e6ed85f1fce3633a9e1bac75df755ce6fa62dcb"
   license "MIT"
 
   def install
